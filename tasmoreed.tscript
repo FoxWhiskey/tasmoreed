@@ -1,0 +1,72 @@
+>D
+cv=0
+fm=0
+fh=-1
+fd=-1
+pi=1
+m:ma=0 60
+m:ha=0 24
+p:sc=0
+p:lp=0
+>B
+cv=sc+(lp*0.001*pc[1])
+>S
+cv=sc+(lp*0.001*pc[1])
+if upsecs%60==0
+then
+  if ma[0]==0     ;if index counter is zero (first element),
+    then pi=60    ; previous index is last element of array.
+    else pi=ma[0] ; else set pointer to previous element
+  endif
+  fm=(cv-ma[pi])*1000    
+  if ma[pi]==0    ; this indicates invalid flow/min calculation
+    then fm=-1
+  endif
+  pi=ma[0]+1      ; age of this element is 60min
+  if pi>60
+     then pi=1
+  endif
+  if ma[pi]==0    ; this indicates invalid flow/h calculation
+    then fh=-1
+  else
+     fh=(cv-ma[pi])*1000
+ endif
+ ma=cv
+ print cv:%cv% ma[%0(ma[0]+1)%]:%0ma[ma[0]+1]% fm:%fm% fh:%fh% fd:%fd%
+endif
+if upsecs%3600==0
+then
+  pi=ha[0]+1
+  if pi>24
+     then pi=1
+  endif
+  if ha[pi]==0
+    then fd=-1
+  else
+     fd=(cv-ha[pi])*1000
+  endif
+  ha=cv
+endif
+if chg[cv]>0
+or chg[fm]>0
+or chg[fh]>0
+or chg[fd]>0
+then
+   =>publish /%prefix3%/%topic%/SENSOR {"reed":{"total":%3cv%,"flow60s":%0fm%,"flow60m":%0fh%,"flow24h":%0fd%}}
+endif
+>E
+;cv=sc+(lp*0.001*pc[1])
+;print set:%cv%
+>W
+@<h2>Intitialwerte</h2>
+so(1)
+nm(0 100000 1 sc "Zählerstand (m³) {m}" 110 3)
+nm(1 20 1 lp "Liter/Impuls " 50 0)
+-----------------
+<h1><center>%3cv% m³</center></h1>
+-----------------
+<h2>Verbrauch</h2>
+60sec {m} %0fm% l/min
+60min {m} %0fh% l/h
+24hrs {m} %0fd% l/24h
+-----------------
